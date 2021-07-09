@@ -18,5 +18,34 @@ services:
     env_file: .env
     depends_on:
       - db
+
+  calendso-nginx:
+    image: nginx:1.15-alpine
+    restart: unless-stopped
+    volumes:
+      - ./nginx-conf:/etc/nginx/conf.d
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - timbre-java
+      - timbre-frontend
+    command:
+      '/bin/sh -c ''while :; do sleep 6h & wait $${!}; nginx -s reload; done &
+      nginx -g "daemon off;"'''
+
+  calendso-certbot:
+    image: certbot/certbot
+    restart: unless-stopped
+    container_name: certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint:
+      "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait
+      $${!}; done;'"
+
 volumes:
   database-data:
